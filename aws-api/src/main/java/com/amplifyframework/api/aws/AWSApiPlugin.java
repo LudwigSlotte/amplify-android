@@ -76,6 +76,7 @@ public final class AWSApiPlugin extends ApiPlugin<Map<String, OkHttpClient>> {
     private final ApiAuthProviders authProvider;
     private final ExecutorService executorService;
     private final AuthRuleRequestDecorator requestDecorator;
+    private final SubscriptionEndpointFactory subscriptionEndpointFactory;
 
     private final Set<String> restApis;
     private final Set<String> gqlApis;
@@ -106,6 +107,7 @@ public final class AWSApiPlugin extends ApiPlugin<Map<String, OkHttpClient>> {
         this.executorService = Executors.newCachedThreadPool();
         this.requestDecorator = new AuthRuleRequestDecorator(authProvider);
         this.apiConfigurators = Immutable.of(builder.apiConfigurators);
+        this.subscriptionEndpointFactory = builder.subscriptionEndpointFactory;
     }
 
     /**
@@ -157,7 +159,7 @@ public final class AWSApiPlugin extends ApiPlugin<Map<String, OkHttpClient>> {
                 final SubscriptionAuthorizer subscriptionAuthorizer =
                     new SubscriptionAuthorizer(apiConfiguration, authProvider);
                 final SubscriptionEndpoint subscriptionEndpoint =
-                    new SubscriptionEndpoint(apiConfiguration, gqlResponseFactory, subscriptionAuthorizer);
+                    subscriptionEndpointFactory.create(apiConfiguration, gqlResponseFactory, subscriptionAuthorizer);
                 final ApiRequestDecoratorFactory requestDecoratorFactory =
                     new ApiRequestDecoratorFactory(authProvider,
                                                    apiConfiguration.getAuthorizationType(),
@@ -783,10 +785,12 @@ public final class AWSApiPlugin extends ApiPlugin<Map<String, OkHttpClient>> {
     public static final class Builder {
         private ApiAuthProviders apiAuthProviders;
         private final Map<String, OkHttpConfigurator> apiConfigurators;
+        private SubscriptionEndpointFactory subscriptionEndpointFactory;
 
         private Builder() {
             this.apiAuthProviders = ApiAuthProviders.noProviderOverrides();
             this.apiConfigurators = new HashMap<>();
+            this.subscriptionEndpointFactory = new GraphQLSubscriptionEndpoint.Factory();
         }
 
         /**
@@ -814,6 +818,16 @@ public final class AWSApiPlugin extends ApiPlugin<Map<String, OkHttpClient>> {
         public Builder configureClient(
                 @NonNull String forApiName, @NonNull OkHttpConfigurator byConfigurator) {
             this.apiConfigurators.put(forApiName, byConfigurator);
+            return this;
+        }
+
+        /**
+         * Provide a subscription endpoint factory implementation.
+         * @param subscriptionEndpointFactory An instance that implements {@link SubscriptionEndpointFactory}
+         * @return A builder instance, to continue chaining configurations
+         */
+        public Builder subscriptionEndpointFactory(SubscriptionEndpointFactory subscriptionEndpointFactory) {
+            this.subscriptionEndpointFactory = subscriptionEndpointFactory;
             return this;
         }
 
