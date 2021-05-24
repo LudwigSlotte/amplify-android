@@ -16,7 +16,6 @@
 package com.amplifyframework.core;
 
 import android.content.Context;
-import androidx.annotation.NonNull;
 
 import com.amplifyframework.AmplifyException;
 import com.amplifyframework.analytics.AnalyticsCategory;
@@ -42,6 +41,8 @@ import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import androidx.annotation.NonNull;
 
 /**
  * This is the top-level customer-facing interface to the Amplify
@@ -134,11 +135,6 @@ public final class Amplify {
         Objects.requireNonNull(configuration);
         Objects.requireNonNull(context);
 
-        synchronized (CONFIGURATION_LOCK) {
-            if (CONFIGURATION_LOCK.get()) {
-                throw new AlreadyConfiguredException("Remove the duplicate call to `Amplify.configure()`.");
-            }
-
             // Configure User-Agent utility
             UserAgent.configure(configuration.getPlatformVersions());
 
@@ -154,9 +150,6 @@ public final class Amplify {
                     beginInitialization(category, context);
                 }
             }
-
-            CONFIGURATION_LOCK.set(true);
-        }
     }
 
     private static void beginInitialization(@NonNull Category<? extends Plugin<?>> category, @NonNull Context context) {
